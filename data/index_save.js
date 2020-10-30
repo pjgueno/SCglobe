@@ -2,6 +2,9 @@ import * as d3 from "d3";
 import '../css/style.css';
 
 
+var sensors;
+
+
  var width = d3.select("#map").node().getBoundingClientRect().width
   let height = 500
   const sensitivity = 75
@@ -53,12 +56,42 @@ import '../css/style.css';
   }));
     
 
+
+//  let pathSel = d3.selectAll("path");
+//
+//
+//pathSel.on("click",function(event,d){
+//        
+//        console.log(event);
+//        console.log(d);
+//    });
+
+
+
+
+
+      
+//      svg.on("click",function(event, d){
+//      
+//      console.log(event);
+//      
+//  });
+
+
+
   let map = svg.append("g")
   
   
+   var svg2 = d3.select("#chart").append("svg")
+            .style("visibility","visible")
+            .style("width","100%")
+        .attr("id","linechart")
+
+
+  
   var colorScale = d3.scaleLinear()
-    .domain([1,10,500,3000])
-    .range(["white","lightblue","blue","navy"])
+    .domain([1, 100])
+    .range(["white", "blue"])
     .interpolate(d3.interpolateRgb);
 
 
@@ -72,42 +105,27 @@ import '../css/style.css';
 //                    .attr("d", path)
 //                    .style("fill", "transparent")
 //                    .style("stroke", "#ccc");
-
-
-
-
-   var svg2 = d3.select("#chart").append("svg")
-            .style("visibility","visible")
-            .style("width","100%")
-        .attr("id","linechart")
-
-   
-
-
-var margin = {top: 20, right: 20, bottom: 50, left: 70};
- var   widthChart = d3.select("#chart").node().getBoundingClientRect().width - margin.left - margin.right;    
-  var  heightChart = d3.select("#chart").node().getBoundingClientRect().height - margin.top - margin.bottom;
-
-  var parseTime = d3.timeParse("%Y-%m-%d");   
-
-    var x = d3.scaleTime().range([0, widthChart]);
-  svg2.append("g")
-      .attr("transform", "translate("+ margin.left +"," + (heightChart +20) + ")")
-    .attr("class", "x_axis");
-
-var y = d3.scaleLinear().range([heightChart, 0]);
-  svg2.append("g")
-    .attr("transform", "translate(" + margin.left + ",20)")
-    .attr("class", "y_axis");
-
-
+//    
 
 Promise.all([
     d3.json('./../json/world_map.json'),
         d3.json('./../json/data.json'),
     d3.json('./../json/countrycodes.json')
         ]).then( ([data1, data2, data3]) => {
-                  
+    
+//    
+//    var maxValue = d3.max(data2["DE"], function(d) { 
+//        
+//        
+//        return d["2018-03-29"]
+//    
+//    
+//    });
+//    
+//    console.log(maxValue);
+//    
+//    
+                    
     
     map.append("g")
       .attr("class", "countries" )
@@ -132,18 +150,53 @@ Promise.all([
     console.log(d);
         
     var code = data3[d.id];
-        if (data2[code] != undefined){     
+        if (data2[code] != undefined){
+            
+            
             console.log(data2[code]);
             drawGraph(data2[code]);
-        }else {console.log("NO DATA")}  
+       
+            
+            
+            
+        }else {console.log("NO DATA")}
+        
+        
+        
+        
     });
       
     
-    console.log(data1, data2, data3);  
+    sensors = data2;
+    console.log(data1, data2, data3);
     
-    drawGraph(data2["total"]);
+    
+    
+    
+    
+    
+//    
+//    
+//var colorScaleLin = d3.scaleLinear()
+//          .domain([0, newData.length-1])
+//          .interpolate(d3.interpolateLab)
+//          .range([col_range_low, col_range_high]);
+//    
+//    
+//  
+//var colorScale = d3.scaleLinear()
+//    .domain([-15, 7.5, 30])
+//    .range(["#2c7bb6", "#ffff8c", "#d7191c"])
+//    .interpolate(d3.interpolateHcl);
+//    
+    
+    
     
         }).catch(err => console.log('Error loading or parsing data.'))
+
+
+
+
 
   d3.timer(function(elapsed) {
     const rotate = projection.rotate()
@@ -161,46 +214,61 @@ Promise.all([
 function drawGraph(data){
     
     var formatedData = [];   
+    
+    var margin = {top: 20, right: 20, bottom: 50, left: 70},
+    width = d3.select("#chart").node().getBoundingClientRect().width - margin.left - margin.right,
+    height = d3.select("#chart").node().getBoundingClientRect().height - margin.top - margin.bottom;
+    
+//    console.log(d3.select("#chart").node().getBoundingClientRect().width);
+//        console.log(d3.select("#chart").node().getBoundingClientRect().height);
+//
+//    
+    var x = d3.scaleTime().range([0, width]);
+    var y = d3.scaleLinear().range([height, 0]);
+    
+  var parseTime = d3.timeParse("%Y-%m-%d");   
+
+    
+    var valueline = d3.line()
+    .curve(d3.curveBasis)
+    .x(function(d) { return x(d.date); })
+    .y(function(d) { return y(d.value); });
+
+//    console.log(Object.keys(data));
+//    console.log(Object.values(data));
+//    console.log(Object.entries(data));
    
     Object.entries(data).forEach(function(item){
         var dataItem = {"date":parseTime(item[0]),"value":+item[1]}
         formatedData.push(dataItem);
     });
     
-console.log(formatedData);
+    
+    console.log(formatedData);
     
 x.domain(d3.extent(formatedData, function(d) { return d.date; }));    
-y.domain([0, d3.max(formatedData, function(d) { return d.value; })]);
-    
-    var xAxis = d3.axisBottom().scale(x);
-    var yAxis = d3.axisLeft().scale(y);
- 
-    svg2.selectAll(".x_axis")
-    .transition()
-    .duration(3000)
-    .call(xAxis);
+console.log(d3.extent(formatedData, function(d) { return d.date; }));
 
-    svg2.selectAll(".y_axis")
-    .transition()
-    .duration(3000)
-    .call(yAxis);
-    
-    var update = svg2.selectAll(".line")
-    .data([formatedData]);
-    
-      update
-    .enter()
-    .append("path")
-    .attr("class","line")
-    .merge(update)
-    .transition()
-    .duration(3000)
-    .attr("d", d3.line()
-      .x(function(d) { return x(d.date); })
-      .y(function(d) { return y(d.value); })
-//      .curve(d3.curveBasis)
-         )
+y.domain([0, d3.max(formatedData, function(d) { return d.value; })]);
+console.log([0, d3.max(formatedData, function(d) { return d.value; })]);
+
+    svg2.append("path")
+      .data([formatedData])
+      .attr("class", "line")
+      .attr("d", valueline)
     .attr("transform", "translate(" + margin.left + ",20)");
+    
+    // Add the x Axis
+  svg2.append("g")
+      .attr("transform", "translate("+ margin.left +"," + (height +20) + ")")
+    .attr("class", "x_axis")
+      .call(d3.axisBottom(x));
+
+  // Add the y Axis
+  svg2.append("g")
+    .attr("transform", "translate(" + margin.left + ",20)")
+    .attr("class", "y_axis")
+      .call(d3.axisLeft(y));
 
   };
 
